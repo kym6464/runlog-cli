@@ -24,10 +24,10 @@
   "author": "runlog",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/runlog.git"
+    "url": "git+https://github.com/TensorPoet/runlog-cli.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/runlog/issues"
+    "url": "https://github.com/TensorPoet/runlog-cli/issues"
   },
   "homepage": "https://runlog.io",
   "license": "MIT",

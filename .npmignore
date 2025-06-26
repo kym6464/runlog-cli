@@ -27,6 +27,8 @@ coverage/
 docs/
 *.md
 !README.md
+Claude.md
+CLAUDE.md
 
 # CI/CD
 .github/

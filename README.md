@@ -1,144 +1,161 @@
 # runlog CLI
 
-Command-line tool for uploading Claude Code conversations to runlog.io.
+[![npm version](https://badge.fury.io/js/runlog.svg)](https://www.npmjs.com/package/runlog)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Share your Claude Code conversations with a single command. Upload and get a shareable link instantly.
+
+## Features
+
+- 📤 **One-command upload** - Share conversations instantly
+- 🔍 **Interactive selection** - Browse and preview conversations before uploading
+- 🎯 **Project-aware** - Automatically detects conversations from your current directory
+- 🔒 **Privacy-focused** - Removes base64 images before upload
+- ⚡ **Fast & lightweight** - Minimal dependencies, quick uploads
 
 ## Installation
 
-### From source (development)
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd runlog/tool
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Link globally (optional)
-npm link
+npm install -g runlog
 ```
 
-### Local installation (without publishing to npm)
+Or use without installing:
 
 ```bash
-cd runlog/tool
-npm install
-npm run build
+npx runlog
+```
 
-# Run directly
-node dist/index.js
+## Quick Start
 
-# Or use npx from the project root
-npx ./tool
+```bash
+# In your project directory
+runlog
+
+# Select a conversation and upload
+# Get your shareable link: https://runlog.io/c/generated-uuid-here
 ```
 
 ## Usage
 
-Simply run the command to see your Claude Code conversations and upload one:
+### Basic Usage
+
+Run `runlog` in any directory containing Claude Code conversations:
 
 ```bash
 runlog
 ```
 
-Or if not linked globally:
+The tool automatically detects conversations from your current project directory.
 
-```bash
-npx ./tool
-```
+### Interactive Interface
 
-The tool will:
-1. List Claude Code conversations for the current project directory only
-2. Sort conversations by newest first (most recent at the top)
-3. Show the project name, last message time, and message count
-4. Let you navigate and preview conversations:
-   - **List Mode:**
-     - **↑↓** - Navigate through conversations
-     - **→** - Enter preview mode
-     - **Enter** - Select conversation for upload
-     - **Esc** - Cancel and exit
-   - **Preview Mode:**
-     - **↑** - Scroll to newer messages
-     - **↓** - Scroll to older messages
-     - **←** - Return to list
-     - **Enter** - Select conversation for upload
-     - **Esc** - Cancel and exit
+Navigate conversations with an intuitive TUI:
 
-     Preview shows messages from oldest to newest and uses all available terminal space.
-5. Show upload confirmation screen with conversation details
-   - **↑↓** - Navigate between options (Yes, upload / No, cancel)
-   - **Enter** - Confirm selection
-   - **Esc** - Cancel upload
-   - Default selection is "Yes, upload"
-6. Pre-process the conversation (remove any base64 image data)
-7. Upload the selected conversation to the server
-8. Display a shareable link (e.g., https://runlog.io/c/{id})
+#### List View
+- **↑↓** - Navigate conversations
+- **→** - Preview conversation
+- **Enter** - Upload selected conversation
+- **/** - Search conversations
+- **s** - Change sort field
+- **o** - Toggle sort order
+- **Esc** - Exit
 
-**Note:** The tool automatically removes any base64 image data before uploading, as the server does not accept conversations containing images.
+#### Preview Mode
+- **↑↓** - Scroll through messages
+- **←** - Return to list
+- **Enter** - Upload conversation
+- **Esc** - Exit
 
-Note: The tool only shows conversations from the current working directory. For example, if you run it from `/Users/you/myproject`, it will only show conversations from that project.
+### Search and Sort
 
-## Configuration
+Search conversations by typing `/` in the list view. Sort by:
+- Last message time (default)
+- Message count
+- Conversation ID
+- Active duration
 
-### Environment Variables
+## How It Works
 
-- `RUNLOG_API_ENDPOINT`: API server URL (default: `https://api.runlog.io`)
-- `CLAUDE_DIR`: Claude projects directory (default: `~/.claude/projects`)
-
-For local development:
-```bash
-RUNLOG_API_ENDPOINT=http://localhost:3000 runlog
-```
-
-## Development
-
-### Run in development mode
-```bash
-npm run dev
-```
-
-### Run tests
-```bash
-npm test
-```
-
-### Watch tests
-```bash
-npm run test:watch
-```
-
-### Build
-```bash
-npm run build
-```
+1. **Detects** Claude Code conversations in your current directory
+2. **Lists** all conversations with metadata (time, messages, duration)
+3. **Preview** conversations before uploading
+4. **Sanitizes** data by removing base64 images
+5. **Uploads** to runlog.io and returns a shareable link
 
 ## Requirements
 
 - Node.js >= 16.0.0
 - Claude Code conversations in `~/.claude/projects/`
-- runlog API server running (locally or remotely)
+
+## Configuration
+
+### Environment Variables
+
+- `RUNLOG_API_ENDPOINT` - Custom API endpoint (default: `https://api.runlog.io`)
+- `CLAUDE_DIR` - Claude projects directory (default: `~/.claude/projects`)
+
+Example:
+```bash
+RUNLOG_API_ENDPOINT=https://custom.api.com runlog
+```
 
 ## Troubleshooting
 
 ### "No conversations found"
-- Make sure you have Claude Code conversations in `~/.claude/projects/`
-- Check that the directory exists and contains `.jsonl` files
+Make sure you:
+- Have Claude Code conversations in `~/.claude/projects/`
+- Are running the command in a project directory
+- Have `.jsonl` files in the conversations directory
 
-### "No response from server"
-- Ensure the runlog API server is running
-- Check the API endpoint configuration
-- For local development: `cd api && rails server`
+### Upload Errors
+The tool validates conversations before upload:
+- **Max file size**: 10MB
+- **Max messages**: 5000
+- **Images**: Automatically removed (base64 data stripped)
 
-### "Server error"
-- Check the server logs for more details
-- Ensure the conversation file is valid JSONL format
-- Check if the conversation exceeds limits:
-  - Maximum size: 10MB
-  - Maximum messages: 5000
-  - Images are not allowed (automatically removed by the tool)
+### Connection Issues
+- Check your internet connection
+- Verify the API endpoint is accessible
+- Try again later if the service is temporarily unavailable
+
+## Privacy & Security
+
+- **Local processing**: Conversations are processed locally before upload
+- **Image removal**: Base64 images are automatically stripped
+- **Project isolation**: Only shows conversations from current directory
+- **Secure upload**: HTTPS encryption for all uploads
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/TensorPoet/runlog-cli.git
+cd runlog-cli/tool
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build
+npm run build
+
+# Run in development
+npm run dev
+```
+
+## Links
+
+- [runlog.io](https://runlog.io) - View shared conversations
+- [GitHub Repository](https://github.com/TensorPoet/runlog-cli)
+- [npm Package](https://www.npmjs.com/package/runlog)
+- [Report Issues](https://github.com/TensorPoet/runlog-cli/issues)
 
 ## License
 
-MIT
+MIT © [runlog](https://runlog.io)
