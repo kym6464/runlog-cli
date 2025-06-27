@@ -91,13 +91,7 @@ Search conversations by typing `/` in the list view. Sort by:
 
 ### Environment Variables
 
-- `RUNLOG_API_ENDPOINT` - Custom API endpoint (default: `https://api.runlog.io`)
 - `CLAUDE_DIR` - Claude projects directory (default: `~/.claude/projects`)
-
-Example:
-```bash
-RUNLOG_API_ENDPOINT=https://custom.api.com runlog
-```
 
 ## Troubleshooting
 
