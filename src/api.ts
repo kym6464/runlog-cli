@@ -102,6 +102,41 @@ export class ApiClient {
     return sanitizedLines.join('\n');
   }
 
+  async deleteConversation(conversationId: string): Promise<void> {
+    try {
+      await axios.delete(
+        `${this.apiEndpoint}/conversations/${conversationId}`,
+        {
+          headers: {
+            'X-Source-UUID': this.clientId
+          },
+          timeout: 10000 // 10 second timeout
+        }
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<ApiError>;
+        
+        if (axiosError.response) {
+          const errorData = axiosError.response.data;
+          const message = errorData.error || 'Unknown server error';
+          
+          if (axiosError.response.status === 403) {
+            throw new Error('Unauthorized: You can only delete conversations you uploaded');
+          } else if (axiosError.response.status === 404) {
+            throw new Error('Conversation not found');
+          }
+          
+          throw new Error(`Server error (${axiosError.response.status}): ${message}`);
+        } else if (axiosError.request) {
+          throw new Error('No response from server. Is the server running?');
+        }
+      }
+      
+      throw error;
+    }
+  }
+
   getShareUrl(conversationId: string): string {
     // Production UI is at runlog.io, local dev is at localhost:8080
     if (this.apiEndpoint.includes('api.runlog.io')) {

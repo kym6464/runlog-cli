@@ -7,17 +7,32 @@ jest.mock('readline', () => ({
 }));
 jest.mock('../parser');
 jest.mock('chalk', () => {
-  const mockChalk = {
-    bold: jest.fn((str: string) => ({
-      blue: jest.fn((s: string) => s)
-    })),
+  const mockChalk: any = {
+    bold: {
+      blue: jest.fn((s: string) => s),
+      yellow: jest.fn((s: string) => s),
+      green: jest.fn((s: string) => s),
+      red: jest.fn((s: string) => s),
+      cyan: jest.fn((s: string) => s),
+      gray: jest.fn((s: string) => s),
+      white: jest.fn((s: string) => s),
+    },
     gray: jest.fn((str: string) => str),
     cyan: jest.fn((str: string) => str),
     white: jest.fn((str: string) => str),
     yellow: jest.fn((str: string) => str),
     blue: jest.fn((str: string) => str),
     green: jest.fn((str: string) => str),
+    red: jest.fn((str: string) => str),
   };
+  
+  // Make functions chainable
+  Object.keys(mockChalk).forEach(key => {
+    if (typeof mockChalk[key] === 'function') {
+      mockChalk[key].bold = mockChalk.bold;
+    }
+  });
+  
   return { default: mockChalk };
 });
 jest.mock('ora', () => () => ({

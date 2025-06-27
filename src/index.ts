@@ -9,7 +9,44 @@ import { getConfig } from './config';
 import { InteractiveSelector } from './interactive-selector';
 import { ConversationMetadata } from './types';
 
-async function main() {
+function showHelp() {
+  console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));
+  console.log('Usage: runlog [command] [options]\n');
+  console.log('Commands:');
+  console.log('  runlog              Upload a conversation (interactive selection)');
+  console.log('  runlog del <uuid>   Delete a conversation by UUID');
+  console.log('  runlog --help       Show this help message\n');
+  console.log('Examples:');
+  console.log('  runlog                                    # Upload current project\'s conversation');
+  console.log('  runlog del abc-123-def-456                # Delete conversation with UUID');
+  console.log('  runlog --help                             # Show help\n');
+  console.log('Environment Variables:');
+  console.log('  RUNLOG_API_ENDPOINT   API server URL (default: https://api.runlog.io)');
+  console.log('  CLAUDE_DIR            Claude projects directory (default: ~/.claude/projects)\n');
+}
+
+async function deleteConversation(uuid: string) {
+  console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));
+  
+  const config = getConfig();
+  const apiClient = new ApiClient(config.apiEndpoint, config.clientId);
+  
+  console.log(chalk.gray(`Deleting conversation: ${uuid}\n`));
+  
+  const deleteSpinner = ora('Deleting conversation...').start();
+  
+  try {
+    await apiClient.deleteConversation(uuid);
+    deleteSpinner.succeed('Conversation deleted successfully!');
+    console.log(chalk.green('\n✅ Conversation has been deleted.\n'));
+  } catch (error) {
+    deleteSpinner.fail('Delete failed');
+    console.error(chalk.red(`\nError: ${error instanceof Error ? error.message : error}\n`));
+    process.exit(1);
+  }
+}
+
+async function uploadConversation() {
   console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));
 
   const config = getConfig();
@@ -192,6 +229,30 @@ async function main() {
       console.log(chalk.gray('  cd api && rails server'));
     }
 
+    process.exit(1);
+  }
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  
+  // Parse command line arguments
+  if (args.length === 0) {
+    // Default: upload conversation
+    await uploadConversation();
+  } else if (args[0] === '--help' || args[0] === '-h') {
+    showHelp();
+  } else if (args[0] === 'del' || args[0] === 'delete') {
+    if (args.length < 2) {
+      console.error(chalk.red('\nError: Missing conversation UUID\n'));
+      console.log('Usage: runlog del <uuid>\n');
+      console.log('Example: runlog del abc-123-def-456\n');
+      process.exit(1);
+    }
+    await deleteConversation(args[1]);
+  } else {
+    console.error(chalk.red(`\nError: Unknown command "${args[0]}"\n`));
+    showHelp();
     process.exit(1);
   }
 }

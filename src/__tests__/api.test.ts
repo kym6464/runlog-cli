@@ -2,17 +2,15 @@ import axios from 'axios';
 import { ApiClient } from '../api';
 
 jest.mock('axios');
-jest.mock('crypto', () => ({
-  randomUUID: () => 'test-uuid-123'
-}));
 
 describe('ApiClient', () => {
   const mockAxios = axios as jest.Mocked<typeof axios>;
   let apiClient: ApiClient;
+  const testClientId = 'test-client-id-123';
 
   beforeEach(() => {
     jest.clearAllMocks();
-    apiClient = new ApiClient('http://localhost:3000');
+    apiClient = new ApiClient('http://localhost:3000', testClientId);
   });
 
   describe('uploadConversation', () => {
@@ -21,7 +19,8 @@ describe('ApiClient', () => {
         data: {
           id: 'conv-123',
           created_at: '2025-06-24T10:00:00Z',
-          message: 'Conversation uploaded successfully'
+          message: 'Conversation uploaded successfully',
+          message_count: 2
         }
       };
 
@@ -36,7 +35,7 @@ describe('ApiClient', () => {
         {
           headers: {
             'Content-Type': 'text/plain',
-            'X-Source-UUID': 'test-uuid-123'
+            'X-Source-UUID': testClientId
           },
           timeout: 30000
         }
@@ -96,6 +95,92 @@ describe('ApiClient', () => {
     });
   });
 
+  describe('deleteConversation', () => {
+    it('should delete conversation successfully', async () => {
+      mockAxios.delete.mockResolvedValue({ status: 204 });
+
+      await expect(apiClient.deleteConversation('conv-123')).resolves.not.toThrow();
+
+      expect(mockAxios.delete).toHaveBeenCalledWith(
+        'http://localhost:3000/conversations/conv-123',
+        {
+          headers: {
+            'X-Source-UUID': testClientId
+          },
+          timeout: 10000
+        }
+      );
+    });
+
+    it('should handle unauthorized deletion', async () => {
+      mockAxios.isAxiosError.mockReturnValue(true);
+      mockAxios.delete.mockRejectedValue({
+        response: {
+          status: 403,
+          data: {
+            error: 'Unauthorized: You can only delete conversations you uploaded'
+          }
+        },
+        request: {}
+      });
+
+      await expect(apiClient.deleteConversation('conv-123'))
+        .rejects.toThrow('Unauthorized: You can only delete conversations you uploaded');
+    });
+
+    it('should handle conversation not found', async () => {
+      mockAxios.isAxiosError.mockReturnValue(true);
+      mockAxios.delete.mockRejectedValue({
+        response: {
+          status: 404,
+          data: {
+            error: 'Conversation not found'
+          }
+        },
+        request: {}
+      });
+
+      await expect(apiClient.deleteConversation('non-existent'))
+        .rejects.toThrow('Conversation not found');
+    });
+
+    it('should handle other server errors', async () => {
+      mockAxios.isAxiosError.mockReturnValue(true);
+      mockAxios.delete.mockRejectedValue({
+        response: {
+          status: 500,
+          data: {
+            error: 'Internal server error'
+          }
+        },
+        request: {}
+      });
+
+      await expect(apiClient.deleteConversation('conv-123'))
+        .rejects.toThrow('Server error (500): Internal server error');
+    });
+
+    it('should handle no response from server', async () => {
+      mockAxios.isAxiosError.mockReturnValue(true);
+      mockAxios.delete.mockRejectedValue({
+        request: {},
+        response: undefined
+      });
+
+      await expect(apiClient.deleteConversation('conv-123'))
+        .rejects.toThrow('No response from server. Is the server running?');
+    });
+
+    it('should handle non-axios errors', async () => {
+      mockAxios.isAxiosError.mockReturnValue(false);
+      const error = new Error('Network error');
+      mockAxios.delete.mockRejectedValue(error);
+
+      await expect(apiClient.deleteConversation('conv-123'))
+        .rejects.toThrow('Network error');
+    });
+  });
+
   describe('getShareUrl', () => {
     it('should generate local share URL for localhost', () => {
       const url = apiClient.getShareUrl('conv-123');
@@ -103,13 +188,13 @@ describe('ApiClient', () => {
     });
 
     it('should generate production share URL for api.runlog.io', () => {
-      apiClient = new ApiClient('https://api.runlog.io');
+      apiClient = new ApiClient('https://api.runlog.io', testClientId);
       const url = apiClient.getShareUrl('conv-123');
       expect(url).toBe('https://runlog.io/c/conv-123');
     });
 
     it('should handle custom API endpoints', () => {
-      apiClient = new ApiClient('https://api.example.com');
+      apiClient = new ApiClient('https://api.example.com', testClientId);
       const url = apiClient.getShareUrl('conv-123');
       expect(url).toBe('https://example.com/c/conv-123');
     });

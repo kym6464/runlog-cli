@@ -98,11 +98,17 @@ invalid json line
     });
 
     it('should sort conversations by last message time', async () => {
+      // Mock process.cwd to return a specific path
+      jest.spyOn(process, 'cwd').mockReturnValue('/test/project1');
+      
       mockFs.readdir.mockImplementation(async (dir) => {
         if (dir === '/mock/claude/dir') {
-          return ['project1'] as any;
+          return ['-test-project1'] as any;
         }
-        return ['conv1.jsonl', 'conv2.jsonl'] as any;
+        if (dir === '/mock/claude/dir/-test-project1') {
+          return ['conv1.jsonl', 'conv2.jsonl'] as any;
+        }
+        return [] as any;
       });
 
       mockFs.stat.mockResolvedValue({ isDirectory: () => true } as any);
@@ -117,6 +123,7 @@ invalid json line
 
       const result = await parser.getAllConversations();
 
+      expect(result).toHaveLength(2);
       expect(result[0].sessionId).toBe('2'); // More recent first
       expect(result[1].sessionId).toBe('1');
     });
