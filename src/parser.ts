@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { ConversationMetadata, Message, MessagePreview } from './types';
+import { ConversationMetadata, Message, MessagePreview } from './types.js';
 
 export class ConversationParser {
   private readonly claudeDir: string;

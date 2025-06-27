@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import { UploadResponse, ApiError } from './types';
+import { UploadResponse, ApiError } from './types.js';
 
 export class ApiClient {
   constructor(private apiEndpoint: string, private clientId: string) {}

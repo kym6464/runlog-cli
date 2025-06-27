@@ -3,11 +3,11 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import * as readline from 'readline';
-import { ConversationParser } from './parser';
-import { ApiClient } from './api';
-import { getConfig } from './config';
-import { InteractiveSelector } from './interactive-selector';
-import { ConversationMetadata } from './types';
+import { ConversationParser } from './parser.js';
+import { ApiClient } from './api.js';
+import { getConfig } from './config.js';
+import { InteractiveSelector } from './interactive-selector.js';
+import { ConversationMetadata } from './types.js';
 
 function showHelp() {
   console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));

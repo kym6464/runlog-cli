@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import Table from 'cli-table3';
-import { ConversationMetadata, MessagePreview } from './types';
-import { formatConversationLine, formatDate, formatDuration } from './utils';
-import { ConversationParser } from './parser';
+import { ConversationMetadata, MessagePreview } from './types.js';
+import { formatConversationLine, formatDate, formatDuration } from './utils.js';
+import { ConversationParser } from './parser.js';
 import * as readline from 'readline';
 
 interface SelectorOptions {

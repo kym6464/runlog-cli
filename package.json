@@ -1,7 +1,8 @@
 {
   "name": "runlog",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "CLI tool for uploading Claude Code conversations to runlog.io",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "runlog": "./dist/index.js"
