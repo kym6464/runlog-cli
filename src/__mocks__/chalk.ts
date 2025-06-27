@@ -6,6 +6,9 @@ const chalk: any = {
   green: (str: string) => str,
   red: (str: string) => str,
   white: (str: string) => str,
+  blue: (str: string) => str,
+  magenta: (str: string) => str,
+  dim: (str: string) => str,
   bold: {
     blue: (str: string) => str,
     yellow: (str: string) => str,
@@ -14,6 +17,7 @@ const chalk: any = {
     cyan: (str: string) => str,
     gray: (str: string) => str,
     white: (str: string) => str,
+    magenta: (str: string) => str,
   },
 };
 
