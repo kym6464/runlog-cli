@@ -1,9 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import { UploadResponse, ApiError } from './types';
-import { randomUUID } from 'crypto';
 
 export class ApiClient {
-  constructor(private apiEndpoint: string) {}
+  constructor(private apiEndpoint: string, private clientId: string) {}
 
   async uploadConversation(content: string): Promise<UploadResponse> {
     try {
@@ -16,7 +15,7 @@ export class ApiClient {
         {
           headers: {
             'Content-Type': 'text/plain',
-            'X-Source-UUID': randomUUID()
+            'X-Source-UUID': this.clientId
           },
           timeout: 30000 // 30 second timeout
         }

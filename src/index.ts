@@ -14,7 +14,7 @@ async function main() {
 
   const config = getConfig();
   const parser = new ConversationParser(config.claudeDir);
-  const apiClient = new ApiClient(config.apiEndpoint);
+  const apiClient = new ApiClient(config.apiEndpoint, config.clientId);
   const currentDir = process.cwd();
 
   console.log(chalk.gray(`Current directory: ${currentDir}\n`));
