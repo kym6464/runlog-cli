@@ -526,6 +526,21 @@ export function parseJsonlMessages(content: string): Message[] {
         continue;
       }
 
+      // Skip messages without content
+      if (!data.message?.content) {
+        continue;
+      }
+
+      // Filter out internal command messages
+      if (isInternalCommandMessage(data)) {
+        continue;
+      }
+
+      // Filter out tool use and tool result messages
+      if (isToolMessage(data)) {
+        continue;
+      }
+
       messages.push(data);
     } catch (err) {
       // Skip invalid JSON lines
@@ -534,4 +549,34 @@ export function parseJsonlMessages(content: string): Message[] {
   }
 
   return messages;
+}
+
+/**
+ * Check if a message contains internal command content
+ */
+function isInternalCommandMessage(data: any): boolean {
+  const content = data.message?.content;
+  if (typeof content === 'string') {
+    return content.includes('<command-name>') || 
+           content.includes('<local-command-stdout>') ||
+           content.includes('<command-message>') ||
+           content.includes('<command-args>');
+  }
+  return false;
+}
+
+/**
+ * Check if a message is a tool use or tool result message
+ */
+function isToolMessage(data: any): boolean {
+  const content = data.message?.content;
+  
+  // Check for tool_use in assistant messages
+  if (Array.isArray(content)) {
+    return content.some((item: any) => 
+      item.type === 'tool_use' || item.type === 'tool_result'
+    );
+  }
+  
+  return false;
 }

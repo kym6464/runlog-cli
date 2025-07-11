@@ -1,5 +1,7 @@
 import { generateHtml, parseJsonlMessages } from '../html-generator.js';
 import { ConversationMetadata, Message } from '../types.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('HTML Generator', () => {
   const mockConversation: ConversationMetadata = {
@@ -136,9 +138,9 @@ describe('HTML Generator', () => {
 
     it('should handle invalid JSON lines gracefully', () => {
       const invalidJsonl = `
-{"type": "user", "content": "valid"}
+{"type": "user", "message": {"content": "valid", "role": "user"}}
 invalid json line
-{"type": "assistant", "content": "also valid"}
+{"type": "assistant", "message": {"content": "also valid", "role": "assistant"}}
       `.trim();
 
       const messages = parseJsonlMessages(invalidJsonl);
@@ -151,6 +153,34 @@ invalid json line
     it('should handle empty content', () => {
       const messages = parseJsonlMessages('');
       expect(messages).toHaveLength(0);
+    });
+
+    it('should filter out internal command messages', () => {
+      // Read actual problematic conversation file
+      const testFilePath = path.join(__dirname, 'test-conversation.jsonl');
+      const problematicJsonl = fs.readFileSync(testFilePath, 'utf-8');
+
+      const messages = parseJsonlMessages(problematicJsonl);
+      
+      // Should have 3 messages: user question + 2 assistant responses 
+      expect(messages).toHaveLength(3);
+      expect(messages[0]?.message?.content).toBe('what does `node --check` do?');
+      expect((messages[1]?.message?.content as any)?.[0]?.text).toContain('`node --check` performs syntax checking');
+      expect((messages[2]?.message?.content as any)?.[0]?.text).toContain('useful for validating JavaScript syntax');
+      
+      // Should not contain any internal commands
+      messages.forEach(msg => {
+        if (!msg.message?.content) return;
+        
+        const content = typeof msg.message.content === 'string' 
+          ? msg.message.content 
+          : Array.isArray(msg.message.content) 
+            ? msg.message.content.map((c: any) => c.text || '').join('') 
+            : '';
+        expect(content).not.toContain('<command-name>');
+        expect(content).not.toContain('<local-command-stdout>');
+        expect(content).not.toContain('/exit');
+      });
     });
   });
 });
