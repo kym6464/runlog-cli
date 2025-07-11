@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import Table from 'cli-table3';
 import { ConversationMetadata, MessagePreview } from './types.js';
 import { formatConversationLine, formatDate, formatDuration } from './utils.js';
@@ -26,6 +25,11 @@ export class InteractiveSelector {
   private previewOffset: number = 0; // Current message offset from start
   private sortMode: SortMode = 'time';
   private sortDescending: boolean = true;
+  
+  // Pagination state
+  private viewportSize: number = 5; // Number of visible conversations
+  private viewportStart: number = 0; // First visible conversation index
+  private centerThreshold: number = 2; // Trigger point for viewport shifts (middle item)
   private get messagesPerPage(): number {
     // Calculate available lines: total height - header lines - footer lines
     const terminalHeight = process.stdout.rows || 24;
@@ -81,9 +85,11 @@ export class InteractiveSelector {
         if (this.isSearchMode) {
           if (key.name === 'up') {
             this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+            this.updateViewport();
             this.render();
           } else if (key.name === 'down') {
             this.selectedIndex = Math.min(this.conversations.length - 1, this.selectedIndex + 1);
+            this.updateViewport();
             this.render();
           } else if (key.name === 'right') {
             if (this.conversations.length > 0) {
@@ -170,9 +176,11 @@ export class InteractiveSelector {
             this.render();
           } else if (key.name === 'up') {
             this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+            this.updateViewport();
             this.render();
           } else if (key.name === 'down') {
             this.selectedIndex = Math.min(this.conversations.length - 1, this.selectedIndex + 1);
+            this.updateViewport();
             this.render();
           } else if (key.name === 'right') {
             if (this.conversations.length > 0) {
@@ -203,7 +211,7 @@ export class InteractiveSelector {
   private render() {
     // Clear screen and move cursor to top
     console.clear();
-    console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));
+    console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Exporter\n'));
     console.log(chalk.gray(`Current directory: ${process.cwd()}\n`));
 
     if (this.isPreviewMode) {
@@ -217,14 +225,15 @@ export class InteractiveSelector {
     if (this.isSearchMode) {
       const searchLine = chalk.cyan('Search:') + ' ' + chalk.white(this.searchTerm) + chalk.gray('|');
       console.log(searchLine + (this.isSearching ? chalk.yellow(' Searching...') : ''));
-      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ upload)\n'));
+      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ export)\n'));
     } else {
-      console.log(chalk.cyan('Select a conversation to upload:'));
-      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ upload, / search, s sort, o order, esc exit)'));
+      console.log(chalk.cyan('Select a conversation to export:'));
+      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ export, / search, s sort, o order, esc exit)'));
 
-      // Show current sort mode
+      // Show current sort mode and pagination status
       const sortInfo = this.getSortModeDisplay();
-      console.log(chalk.gray(`Sort: ${sortInfo} ${this.sortDescending ? '↓' : '↑'}\n`));
+      const paginationStatus = this.getPaginationStatus();
+      console.log(chalk.gray(`Sort: ${sortInfo} ${this.sortDescending ? '↓' : '↑'} | ${paginationStatus}\n`));
     }
 
     if (this.conversations.length === 0 && !this.isSearching) {
@@ -248,8 +257,13 @@ export class InteractiveSelector {
         wordWrap: true
       });
 
-      this.conversations.forEach((conv, index) => {
-        const isSelected = index === this.selectedIndex;
+      // Get visible conversations for current viewport
+      const visibleConversations = this.getVisibleConversations();
+      
+      visibleConversations.forEach((conv, index) => {
+        // Calculate actual index in full conversation list
+        const actualIndex = this.viewportStart + index;
+        const isSelected = actualIndex === this.selectedIndex;
         const shortId = conv.sessionId ? conv.sessionId.replace(/-/g, '').substring(0, 6) : '';
 
         const row = [
@@ -278,7 +292,7 @@ export class InteractiveSelector {
     const separatorWidth = Math.min(terminalWidth - 2, 100);
 
     console.log(chalk.cyan('Message Preview'));
-    console.log(chalk.gray('(↑ older, ↓ newer, ← back, ↵ upload, esc exit)\n'));
+    console.log(chalk.gray('(↑ older, ↓ newer, ← back, ↵ export, esc exit)\n'));
 
     console.log(chalk.bold(formatConversationLine(
       selected.projectName,
@@ -430,6 +444,9 @@ export class InteractiveSelector {
       }
       // Apply current sort after search
       this.sortConversations();
+      // Reset viewport after search results change
+      this.selectedIndex = 0;
+      this.viewportStart = 0;
     } catch (error) {
       console.error('Search failed:', error);
     } finally {
@@ -475,6 +492,52 @@ export class InteractiveSelector {
     }
   }
 
+  private updateViewport() {
+    if (this.conversations.length <= this.viewportSize) {
+      // If we have fewer conversations than viewport size, show all
+      this.viewportStart = 0;
+      return;
+    }
+
+    // Calculate the position relative to center threshold
+    const relativePosition = this.selectedIndex - this.viewportStart;
+    
+    // If we're moving down past the center threshold, shift viewport forward
+    if (relativePosition > this.centerThreshold && this.viewportStart + this.viewportSize < this.conversations.length) {
+      this.viewportStart = this.selectedIndex - this.centerThreshold;
+    }
+    
+    // If we're moving up before the center threshold, shift viewport backward
+    if (relativePosition < this.centerThreshold && this.viewportStart > 0) {
+      this.viewportStart = Math.max(0, this.selectedIndex - this.centerThreshold);
+    }
+    
+    // Ensure viewport doesn't go past the end
+    if (this.viewportStart + this.viewportSize > this.conversations.length) {
+      this.viewportStart = Math.max(0, this.conversations.length - this.viewportSize);
+    }
+  }
+
+  private getVisibleConversations(): ConversationMetadata[] {
+    if (this.conversations.length <= this.viewportSize) {
+      return this.conversations;
+    }
+    return this.conversations.slice(this.viewportStart, this.viewportStart + this.viewportSize);
+  }
+
+  private getPaginationStatus(): string {
+    if (this.conversations.length <= this.viewportSize) {
+      return `${this.conversations.length} conversation${this.conversations.length === 1 ? '' : 's'}`;
+    }
+    
+    const currentPage = Math.floor(this.viewportStart / this.viewportSize) + 1;
+    const totalPages = Math.ceil(this.conversations.length / this.viewportSize);
+    const displayStart = this.viewportStart + 1;
+    const displayEnd = Math.min(this.viewportStart + this.viewportSize, this.conversations.length);
+    
+    return `${displayStart}-${displayEnd} of ${this.conversations.length} conversations (page ${currentPage}/${totalPages})`;
+  }
+
   private sortConversations() {
     this.conversations.sort((a, b) => {
       let compareValue = 0;
@@ -501,5 +564,6 @@ export class InteractiveSelector {
 
     // Reset selection to top after sorting
     this.selectedIndex = 0;
+    this.viewportStart = 0;
   }
 }

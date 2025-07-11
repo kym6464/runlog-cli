@@ -26,13 +26,3 @@ export interface MessagePreview {
   role?: string;
 }
 
-export interface UploadResponse {
-  id: string;
-  created_at: string;
-  message: string;
-}
-
-export interface ApiError {
-  error?: string;
-  errors?: string[];
-}
