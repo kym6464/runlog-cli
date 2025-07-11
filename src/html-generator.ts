@@ -233,6 +233,141 @@ export function generateHtml(conversation: ConversationMetadata, messages: Messa
             opacity: 0.7;
         }
 
+        /* Tool call summary styles */
+        .tool-summary {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+            max-width: 90%;
+        }
+
+        .tool-header {
+            padding: 0.75rem 1rem;
+            background: #e9ecef;
+            border-radius: 7px 7px 0 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s ease;
+        }
+
+        .tool-header:hover {
+            background: #dee2e6;
+        }
+
+        .tool-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .tool-status {
+            padding: 0.15rem 0.4rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tool-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .tool-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .tool-status.running {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .tool-duration {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-left: auto;
+        }
+
+        .tool-expand-icon {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .tool-header.expanded .tool-expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .tool-content {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #e9ecef;
+            display: none;
+            background: white;
+            border-radius: 0 0 7px 7px;
+        }
+
+        .tool-content.expanded {
+            display: block;
+        }
+
+        .tool-params {
+            margin-bottom: 0.75rem;
+        }
+
+        .tool-params h4 {
+            font-size: 0.8rem;
+            color: #495057;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .tool-params pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .tool-result {
+            margin-bottom: 0.75rem;
+        }
+
+        .tool-result h4 {
+            font-size: 0.8rem;
+            color: #495057;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .tool-result pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .tool-error {
+            color: #721c24;
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .container {
@@ -349,6 +484,22 @@ export function generateHtml(conversation: ConversationMetadata, messages: Messa
                 block.parentElement.appendChild(button);
             });
         });
+
+        // Tool summary toggle functionality
+        window.toggleToolContent = function(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.tool-expand-icon');
+            
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                header.classList.remove('expanded');
+                icon.textContent = '▼';
+            } else {
+                content.classList.add('expanded');
+                header.classList.add('expanded');
+                icon.textContent = '▲';
+            }
+        };
     </script>
 </body>
 </html>`;
@@ -363,6 +514,11 @@ function renderMessage(message: Message): string {
     hour: '2-digit', 
     minute: '2-digit' 
   }) : '';
+
+  // Handle tool messages first (they can be either user or assistant type)
+  if (isToolMessage(message)) {
+    return renderToolMessage(message, timeStr);
+  }
 
   // Handle different message types
   if (message.type === 'user' || message.type === 'assistant') {
@@ -402,6 +558,124 @@ function renderMessage(message: Message): string {
   }
 
   return '';
+}
+
+/**
+ * Renders a tool message (tool_use or tool_result) as a summary card
+ */
+function renderToolMessage(message: Message, timeStr: string): string {
+  const content = message.message?.content;
+  
+  if (!Array.isArray(content)) return '';
+
+  // Handle tool_use messages
+  const toolUse = content.find((item: any) => item.type === 'tool_use');
+  if (toolUse) {
+    const toolName = toolUse.name || 'Unknown Tool';
+    const toolId = toolUse.id || '';
+    const params = toolUse.input || {};
+    
+    // Extract key parameters for summary
+    const paramSummary = extractToolParamSummary(params);
+    
+    return `
+      <div class="tool-summary">
+        <div class="tool-header" onclick="toggleToolContent(this)">
+          <div class="tool-info">
+            <span class="tool-name">🔧 ${escapeHtml(toolName)}</span>
+            ${paramSummary ? `<span class="tool-status running">${escapeHtml(paramSummary)}</span>` : ''}
+          </div>
+          <div class="tool-expand-icon">▼</div>
+        </div>
+        <div class="tool-content">
+          <div class="tool-params">
+            <h4>Parameters:</h4>
+            <pre><code>${escapeHtml(JSON.stringify(params, null, 2))}</code></pre>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Handle tool_result messages
+  const toolResult = content.find((item: any) => item.type === 'tool_result');
+  if (toolResult) {
+    const isError = toolResult.is_error || false;
+    const resultContent = toolResult.content || '';
+    const toolUseId = toolResult.tool_use_id || '';
+    
+    // Calculate duration from message metadata if available
+    const duration = calculateToolDuration(message);
+    const durationStr = duration ? ` • ${duration}ms` : '';
+    
+    return `
+      <div class="tool-summary">
+        <div class="tool-header" onclick="toggleToolContent(this)">
+          <div class="tool-info">
+            <span class="tool-name">📊 Tool Result</span>
+            <span class="tool-status ${isError ? 'error' : 'success'}">
+              ${isError ? '❌ Error' : '✅ Success'}
+            </span>
+            ${durationStr ? `<span class="tool-duration">${durationStr}</span>` : ''}
+          </div>
+          <div class="tool-expand-icon">▼</div>
+        </div>
+        <div class="tool-content">
+          <div class="tool-result">
+            <h4>Output:</h4>
+            <pre class="${isError ? 'tool-error' : ''}"><code>${escapeHtml(truncateText(resultContent, 1000))}</code></pre>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  return '';
+}
+
+/**
+ * Extracts a brief summary from tool parameters for display
+ */
+function extractToolParamSummary(params: any): string {
+  if (!params || typeof params !== 'object') return '';
+  
+  // Common parameter names to show in summary
+  if (params.command) return `cmd: ${params.command}`.substring(0, 30);
+  if (params.description) return params.description.substring(0, 30);
+  if (params.file_path) return `file: ${params.file_path.split('/').pop()}`;
+  if (params.pattern) return `pattern: ${params.pattern}`.substring(0, 30);
+  if (params.url) return `url: ${params.url}`.substring(0, 30);
+  
+  // Fallback to first parameter value
+  const firstKey = Object.keys(params)[0];
+  if (firstKey && params[firstKey]) {
+    const value = String(params[firstKey]);
+    return `${firstKey}: ${value}`.substring(0, 30);
+  }
+  
+  return '';
+}
+
+/**
+ * Calculates tool execution duration from message metadata
+ */
+function calculateToolDuration(message: Message): number | null {
+  // Try to extract duration from toolUseResult metadata
+  const toolResult = (message as any).toolUseResult;
+  if (toolResult && typeof toolResult === 'object') {
+    // Duration might be in various formats, try to find it
+    if (toolResult.duration) return toolResult.duration;
+    if (toolResult.executionTime) return toolResult.executionTime;
+  }
+  
+  // Could calculate from timestamps if we had paired messages
+  return null;
+}
+
+/**
+ * Truncates text to specified length with ellipsis
+ */
+function truncateText(text: string, maxLength: number): string {
+  if (!text || text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
 }
 
 /**
@@ -536,8 +810,10 @@ export function parseJsonlMessages(content: string): Message[] {
         continue;
       }
 
-      // Filter out tool use and tool result messages
+      // Process tool use and tool result messages differently
       if (isToolMessage(data)) {
+        // Add tool messages to be rendered as summaries
+        messages.push(data);
         continue;
       }
 

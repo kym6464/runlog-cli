@@ -95,6 +95,59 @@ describe('HTML Generator', () => {
       expect(html).toContain('hljs.highlightAll()');
     });
 
+    it('should render tool messages as interactive summaries', () => {
+      const toolUseMessage: Message = {
+        type: 'assistant',
+        timestamp: '2025-07-11T10:03:00Z',
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'test-tool-id',
+              name: 'TestTool',
+              input: {
+                command: 'test command',
+                description: 'Test description'
+              }
+            }
+          ]
+        }
+      };
+
+      const toolResultMessage: Message = {
+        type: 'user',
+        timestamp: '2025-07-11T10:04:00Z',
+        message: {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'test-tool-id',
+              is_error: false,
+              content: 'Tool execution completed successfully'
+            }
+          ]
+        }
+      };
+
+      const messagesWithTools = [toolUseMessage, toolResultMessage];
+      const html = generateHtml(mockConversation, messagesWithTools);
+      
+      // Should contain tool summary elements
+      expect(html).toContain('tool-summary');
+      expect(html).toContain('tool-header');
+      expect(html).toContain('tool-content');
+      expect(html).toContain('🔧 TestTool');
+      expect(html).toContain('📊 Tool Result');
+      expect(html).toContain('✅ Success');
+      expect(html).toContain('toggleToolContent');
+      
+      // Should contain tool parameters and results
+      expect(html).toContain('test command');
+      expect(html).toContain('Tool execution completed successfully');
+    });
+
     it('should escape HTML characters properly', () => {
       const messageWithHtml: Message = {
         type: 'user',
@@ -155,18 +208,32 @@ invalid json line
       expect(messages).toHaveLength(0);
     });
 
-    it('should filter out internal command messages', () => {
+    it('should filter out internal command messages and include tool messages', () => {
       // Read actual problematic conversation file
       const testFilePath = path.join(__dirname, 'test-conversation.jsonl');
       const problematicJsonl = fs.readFileSync(testFilePath, 'utf-8');
 
       const messages = parseJsonlMessages(problematicJsonl);
       
-      // Should have 3 messages: user question + 2 assistant responses 
-      expect(messages).toHaveLength(3);
+      // Should have 5 messages: user question + assistant response + tool use + tool result + final assistant response
+      expect(messages).toHaveLength(5);
       expect(messages[0]?.message?.content).toBe('what does `node --check` do?');
       expect((messages[1]?.message?.content as any)?.[0]?.text).toContain('`node --check` performs syntax checking');
-      expect((messages[2]?.message?.content as any)?.[0]?.text).toContain('useful for validating JavaScript syntax');
+      
+      // Check for tool messages
+      const toolUseMessage = messages[2];
+      expect(toolUseMessage.type).toBe('assistant');
+      expect(Array.isArray(toolUseMessage.message?.content)).toBe(true);
+      expect((toolUseMessage.message?.content as any)?.[0]?.type).toBe('tool_use');
+      expect((toolUseMessage.message?.content as any)?.[0]?.name).toBe('Bash');
+      
+      const toolResultMessage = messages[3];
+      expect(toolResultMessage.type).toBe('user');
+      expect(Array.isArray(toolResultMessage.message?.content)).toBe(true);
+      expect((toolResultMessage.message?.content as any)?.[0]?.type).toBe('tool_result');
+      expect((toolResultMessage.message?.content as any)?.[0]?.is_error).toBe(false);
+      
+      expect((messages[4]?.message?.content as any)?.[0]?.text).toContain('useful for validating JavaScript syntax');
       
       // Should not contain any internal commands
       messages.forEach(msg => {
