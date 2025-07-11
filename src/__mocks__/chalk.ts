@@ -9,7 +9,7 @@ const chalk: any = {
   blue: (str: string) => str,
   magenta: (str: string) => str,
   dim: (str: string) => str,
-  bold: {
+  bold: Object.assign((str: string) => str, {
     blue: (str: string) => str,
     yellow: (str: string) => str,
     green: (str: string) => str,
@@ -18,7 +18,7 @@ const chalk: any = {
     gray: (str: string) => str,
     white: (str: string) => str,
     magenta: (str: string) => str,
-  },
+  }),
 };
 
 // Make properties chainable

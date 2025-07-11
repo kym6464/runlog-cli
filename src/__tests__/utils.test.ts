@@ -64,8 +64,10 @@ describe('utils', () => {
 
   describe('formatConversationLine', () => {
     it('should format conversation line with all details', () => {
-      const date = new Date('2025-06-20T14:00:00Z');
-      const result = formatConversationLine('my-project', date, 42);
+      // Use a date that's about 4 days ago from current date
+      const fourDaysAgo = new Date();
+      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+      const result = formatConversationLine('my-project', fourDaysAgo, 42);
       
       // Check that it contains the expected parts (without checking exact chalk formatting)
       expect(result).toContain('4 days ago');

@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import Table from 'cli-table3';
 import { ConversationMetadata, MessagePreview } from './types.js';
 import { formatConversationLine, formatDate, formatDuration } from './utils.js';
@@ -203,7 +202,7 @@ export class InteractiveSelector {
   private render() {
     // Clear screen and move cursor to top
     console.clear();
-    console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Uploader\n'));
+    console.log(chalk.bold.blue('\n🔧 runlog - Claude Code Conversation Exporter\n'));
     console.log(chalk.gray(`Current directory: ${process.cwd()}\n`));
 
     if (this.isPreviewMode) {
@@ -217,10 +216,10 @@ export class InteractiveSelector {
     if (this.isSearchMode) {
       const searchLine = chalk.cyan('Search:') + ' ' + chalk.white(this.searchTerm) + chalk.gray('|');
       console.log(searchLine + (this.isSearching ? chalk.yellow(' Searching...') : ''));
-      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ upload)\n'));
+      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ export)\n'));
     } else {
-      console.log(chalk.cyan('Select a conversation to upload:'));
-      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ upload, / search, s sort, o order, esc exit)'));
+      console.log(chalk.cyan('Select a conversation to export:'));
+      console.log(chalk.gray('(↑↓ navigate, → preview, ↵ export, / search, s sort, o order, esc exit)'));
 
       // Show current sort mode
       const sortInfo = this.getSortModeDisplay();
@@ -278,7 +277,7 @@ export class InteractiveSelector {
     const separatorWidth = Math.min(terminalWidth - 2, 100);
 
     console.log(chalk.cyan('Message Preview'));
-    console.log(chalk.gray('(↑ older, ↓ newer, ← back, ↵ upload, esc exit)\n'));
+    console.log(chalk.gray('(↑ older, ↓ newer, ← back, ↵ export, esc exit)\n'));
 
     console.log(chalk.bold(formatConversationLine(
       selected.projectName,

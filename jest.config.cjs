@@ -14,5 +14,6 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^chalk$': '<rootDir>/src/__mocks__/chalk.ts',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 };
