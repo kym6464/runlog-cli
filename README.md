@@ -1,3 +1,6 @@
+> [!NOTE]
+> I originally forked this to remove the server component of it, but then I discovered [daaain/claude-code-log](https://github.com/daaain/claude-code-log) which already does this better so I decided to refocus my efforts there
+
 # runlog CLI
 
 [![npm version](https://badge.fury.io/js/runlog.svg)](https://www.npmjs.com/package/runlog)
